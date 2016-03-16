@@ -26,12 +26,18 @@ PuzzleQuest = (function() {
 
   PuzzleQuest.CONST_CELL_SKULL5 = 130;
 
+  PuzzleQuest.initialized = false;
+
   PuzzleQuest.eCells = [];
 
   PuzzleQuest.cells = [];
 
   PuzzleQuest.init = function() {
     var j, l, ref, ref1, results, td, tr, x, y;
+    if (this.initialized) {
+      return;
+    }
+    this.initialized = true;
     this.eCells = Utl.array2dFill(this.CONST_X, this.CONST_Y);
     this.cells = Utl.array2dFill(this.CONST_X, this.CONST_Y, this.CONST_CELL_EMPTY);
     results = [];
@@ -47,14 +53,82 @@ PuzzleQuest = (function() {
   };
 
   PuzzleQuest.randomize = function() {
-    var cells, j, l, ref, ref1, x, y;
+    var cells, flag, j, l, ref, ref1, x, y;
+    this.init();
     cells = [this.CONST_CELL_GREEN, this.CONST_CELL_RED, this.CONST_CELL_YELLOW, this.CONST_CELL_BLUE, this.CONST_CELL_GOLD, this.CONST_CELL_EXP, this.CONST_CELL_SKULL];
-    for (x = j = 0, ref = this.CONST_X; 0 <= ref ? j < ref : j > ref; x = 0 <= ref ? ++j : --j) {
-      for (y = l = 0, ref1 = this.CONST_Y; 0 <= ref1 ? l < ref1 : l > ref1; y = 0 <= ref1 ? ++l : --l) {
-        this.cells[x][y] = cells[Utl.rand(0, cells.length - 1)];
+    flag = true;
+    while (flag) {
+      for (x = j = 0, ref = this.CONST_X; 0 <= ref ? j < ref : j > ref; x = 0 <= ref ? ++j : --j) {
+        for (y = l = 0, ref1 = this.CONST_Y; 0 <= ref1 ? l < ref1 : l > ref1; y = 0 <= ref1 ? ++l : --l) {
+          this.cells[x][y] = cells[Utl.rand(0, cells.length - 1)];
+        }
       }
+      flag = this.getChain().length !== 0;
     }
     return this.redraw();
+  };
+
+  PuzzleQuest.getChain = function(cells) {
+    var chains, j, l, me, o, p, ref, ref1, ref2, ref3, ref4, ref5, tempChain, x, xPlus, y, yPlus;
+    if (cells == null) {
+      cells = this.cells;
+    }
+    chains = [];
+    for (x = j = 0, ref = cells.length; 0 <= ref ? j < ref : j > ref; x = 0 <= ref ? ++j : --j) {
+      for (y = l = 0, ref1 = cells[x].length; 0 <= ref1 ? l < ref1 : l > ref1; y = 0 <= ref1 ? ++l : --l) {
+        me = cells[x][y];
+        if (!(0 < x && this.isChainable(me, cells[x - 1][y]))) {
+          tempChain = [[x, y]];
+          for (xPlus = o = ref2 = x + 1, ref3 = cells.length; ref2 <= ref3 ? o < ref3 : o > ref3; xPlus = ref2 <= ref3 ? ++o : --o) {
+            if (!this.isChainable(me, cells[xPlus][y])) {
+              break;
+            }
+            tempChain.push([xPlus, y]);
+          }
+          if (tempChain.length >= 3) {
+            chains.push(tempChain);
+          }
+        }
+        if (!(0 < y && this.isChainable(me, cells[x][y - 1]))) {
+          tempChain = [[x, y]];
+          for (yPlus = p = ref4 = y + 1, ref5 = cells[x].length; ref4 <= ref5 ? p < ref5 : p > ref5; yPlus = ref4 <= ref5 ? ++p : --p) {
+            if (!this.isChainable(me, cells[x][yPlus])) {
+              break;
+            }
+            tempChain.push([x, yPlus]);
+          }
+          if (tempChain.length >= 3) {
+            chains.push(tempChain);
+          }
+        }
+      }
+    }
+    return chains;
+  };
+
+  PuzzleQuest.isChainable = function(me, target) {
+    var chainable;
+    chainable = (function() {
+      switch (me) {
+        case this.CONST_CELL_RED:
+          return [this.CONST_CELL_RED];
+        case this.CONST_CELL_GREEN:
+          return [this.CONST_CELL_GREEN];
+        case this.CONST_CELL_YELLOW:
+          return [this.CONST_CELL_YELLOW];
+        case this.CONST_CELL_BLUE:
+          return [this.CONST_CELL_BLUE];
+        case this.CONST_CELL_GOLD:
+          return [this.CONST_CELL_GOLD];
+        case this.CONST_CELL_EXP:
+          return [this.CONST_CELL_EXP];
+        case this.CONST_CELL_SKULL:
+          return [this.CONST_CELL_SKULL, this.CONST_CELL_SKULL5];
+        default:
+          return [];
+      }
+    }).call(this);
+    return Utl.inArray(target, chainable);
   };
 
   PuzzleQuest.redraw = function() {
