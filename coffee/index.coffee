@@ -31,6 +31,91 @@ class PuzzleQuest
 
       $('#board tbody').append tr
 
+  @getScores:(cells = @cells)->
+    scores = []
+    for x in [0...cells.length]
+      for y in [0...cells[x].length]
+        # 右と入れ替える
+        score = 0
+        if x+1 < cells.length
+          copy = Utl.clone cells
+          [copy[x][y], copy[x+1][y]] = [copy[x+1][y], copy[x][y]]
+          score += @getScore copy
+        scores.push {
+          x : x
+          y : y
+          direction : "x"
+          score : score
+        }
+
+        # 下と入れ替える
+        score = 0
+        if y+1 < cells[x].length
+          copy = Utl.clone cells
+          [copy[x][y], copy[x][y+1]] = [copy[x][y+1], copy[x][y]]
+          score += @getScore copy
+        scores.push {
+          x : x
+          y : y
+          direction : "y"
+          score : score
+        }
+
+    scores.sort (a, b)->
+      return 1  if a.score < b.score
+      return -1 if a.score > b.score
+      0
+
+    scores
+
+  @getScore:(inputCells)->
+    cells = Utl.clone inputCells
+    chains = @getChain cells
+
+    score = 0
+    # 連鎖があるとき
+    if chains.length isnt 0
+      firstScore = 0
+      for chain in chains
+        # 3消しなら1点
+        if chain.length is 3
+          firstScore += 1
+        # 4消し以上なら100点
+        else if chain.length >= 4
+          firstScore += 100
+
+        for tempChain in chain
+          [tempX, tempY] = tempChain
+          cells[tempX][tempY] = @CONST_CELL_EMPTY
+
+      # 自由落下
+      cells = @fall(cells)
+      # 空の座標を探す
+      emptyCells = []
+      for x in [0...cells.length]
+        for y in [0...cells[x].length]
+          emptyCells.push [x, y] if cells[x][y] is @CONST_CELL_EMPTY
+      # 二乗回ランダムに試す
+      randScore = 0
+      for n in [0...1000]
+        for e in emptyCells
+          cells[e[0]][e[1]] = (->
+            c = [
+              @CONST_CELL_GREEN 
+              @CONST_CELL_RED
+              @CONST_CELL_YELLOW
+              @CONST_CELL_BLUE
+              @CONST_CELL_GOLD
+              @CONST_CELL_EXP
+              @CONST_CELL_SKULL
+            ]
+            c[Utl.rand(0, c.length-1)]
+          )()
+        randScore += @getScore cells
+      randScore /= 1000
+      score += firstScore + randScore
+    score
+
   @randomize:->
     @init()
     cells = [
@@ -50,7 +135,9 @@ class PuzzleQuest
       flag = @getChain().length isnt 0
     @redraw()
 
-  @getChain:(cells = @cells)->
+  @getChain:(inputCells = @cells)->
+    cells = Utl.clone inputCells
+
     chains = []
     for x in [0...cells.length]
       for y in [0...cells[x].length]
@@ -76,6 +163,18 @@ class PuzzleQuest
             chains.push tempChain
     chains
 
+  # 自由落下させる
+  @fall:(inputCells = @cells)->
+    cells = Utl.clone inputCells
+
+    for x in [0...cells.length]
+      temp = []
+      for y in [0...cells[x].length]
+        if cells[x][y] isnt @CONST_CELL_EMPTY
+          temp.push cells[x][y]
+      temp.unshift @CONST_CELL_EMPTY for i in [0...cells[x].length-temp.length]
+      cells[x] = temp
+    cells
 
   # 連鎖の対象になるか
   @isChainable:(me, target)->

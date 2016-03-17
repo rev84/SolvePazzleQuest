@@ -33,7 +33,7 @@ PuzzleQuest = (function() {
   PuzzleQuest.cells = [];
 
   PuzzleQuest.init = function() {
-    var j, l, ref, ref1, results, td, tr, x, y;
+    var j, k, ref, ref1, results, td, tr, x, y;
     if (this.initialized) {
       return;
     }
@@ -43,7 +43,7 @@ PuzzleQuest = (function() {
     results = [];
     for (y = j = 0, ref = this.CONST_Y; 0 <= ref ? j < ref : j > ref; y = 0 <= ref ? ++j : --j) {
       tr = $('<tr>');
-      for (x = l = 0, ref1 = this.CONST_X; 0 <= ref1 ? l < ref1 : l > ref1; x = 0 <= ref1 ? ++l : --l) {
+      for (x = k = 0, ref1 = this.CONST_X; 0 <= ref1 ? k < ref1 : k > ref1; x = 0 <= ref1 ? ++k : --k) {
         td = $('<td>').addClass('cell').appendTo(tr);
         this.eCells[x][y] = td;
       }
@@ -52,14 +52,107 @@ PuzzleQuest = (function() {
     return results;
   };
 
+  PuzzleQuest.getScores = function(cells) {
+    var copy, j, k, ref, ref1, ref2, ref3, score, scores, x, y;
+    if (cells == null) {
+      cells = this.cells;
+    }
+    scores = [];
+    for (x = j = 0, ref = cells.length; 0 <= ref ? j < ref : j > ref; x = 0 <= ref ? ++j : --j) {
+      for (y = k = 0, ref1 = cells[x].length; 0 <= ref1 ? k < ref1 : k > ref1; y = 0 <= ref1 ? ++k : --k) {
+        score = 0;
+        if (x + 1 < cells.length) {
+          copy = Utl.clone(cells);
+          ref2 = [copy[x + 1][y], copy[x][y]], copy[x][y] = ref2[0], copy[x + 1][y] = ref2[1];
+          score += this.getScore(copy);
+        }
+        scores.push({
+          x: x,
+          y: y,
+          direction: "x",
+          score: score
+        });
+        score = 0;
+        if (y + 1 < cells[x].length) {
+          copy = Utl.clone(cells);
+          ref3 = [copy[x][y + 1], copy[x][y]], copy[x][y] = ref3[0], copy[x][y + 1] = ref3[1];
+          score += this.getScore(copy);
+        }
+        scores.push({
+          x: x,
+          y: y,
+          direction: "y",
+          score: score
+        });
+      }
+    }
+    scores.sort(function(a, b) {
+      if (a.score < b.score) {
+        return 1;
+      }
+      if (a.score > b.score) {
+        return -1;
+      }
+      return 0;
+    });
+    return scores;
+  };
+
+  PuzzleQuest.getScore = function(inputCells) {
+    var cells, chain, chains, e, emptyCells, firstScore, j, k, l, len, len1, len2, n, o, p, q, randScore, ref, ref1, score, tempChain, tempX, tempY, x, y;
+    cells = Utl.clone(inputCells);
+    chains = this.getChain(cells);
+    score = 0;
+    if (chains.length !== 0) {
+      firstScore = 0;
+      for (j = 0, len = chains.length; j < len; j++) {
+        chain = chains[j];
+        if (chain.length === 3) {
+          firstScore += 1;
+        } else if (chain.length >= 4) {
+          firstScore += 100;
+        }
+        for (k = 0, len1 = chain.length; k < len1; k++) {
+          tempChain = chain[k];
+          tempX = tempChain[0], tempY = tempChain[1];
+          cells[tempX][tempY] = this.CONST_CELL_EMPTY;
+        }
+      }
+      cells = this.fall(cells);
+      emptyCells = [];
+      for (x = l = 0, ref = cells.length; 0 <= ref ? l < ref : l > ref; x = 0 <= ref ? ++l : --l) {
+        for (y = o = 0, ref1 = cells[x].length; 0 <= ref1 ? o < ref1 : o > ref1; y = 0 <= ref1 ? ++o : --o) {
+          if (cells[x][y] === this.CONST_CELL_EMPTY) {
+            emptyCells.push([x, y]);
+          }
+        }
+      }
+      randScore = 0;
+      for (n = p = 0; p < 1000; n = ++p) {
+        for (q = 0, len2 = emptyCells.length; q < len2; q++) {
+          e = emptyCells[q];
+          cells[e[0]][e[1]] = (function() {
+            var c;
+            c = [this.CONST_CELL_GREEN, this.CONST_CELL_RED, this.CONST_CELL_YELLOW, this.CONST_CELL_BLUE, this.CONST_CELL_GOLD, this.CONST_CELL_EXP, this.CONST_CELL_SKULL];
+            return c[Utl.rand(0, c.length - 1)];
+          })();
+        }
+        randScore += this.getScore(cells);
+      }
+      randScore /= 1000;
+      score += firstScore + randScore;
+    }
+    return score;
+  };
+
   PuzzleQuest.randomize = function() {
-    var cells, flag, j, l, ref, ref1, x, y;
+    var cells, flag, j, k, ref, ref1, x, y;
     this.init();
     cells = [this.CONST_CELL_GREEN, this.CONST_CELL_RED, this.CONST_CELL_YELLOW, this.CONST_CELL_BLUE, this.CONST_CELL_GOLD, this.CONST_CELL_EXP, this.CONST_CELL_SKULL];
     flag = true;
     while (flag) {
       for (x = j = 0, ref = this.CONST_X; 0 <= ref ? j < ref : j > ref; x = 0 <= ref ? ++j : --j) {
-        for (y = l = 0, ref1 = this.CONST_Y; 0 <= ref1 ? l < ref1 : l > ref1; y = 0 <= ref1 ? ++l : --l) {
+        for (y = k = 0, ref1 = this.CONST_Y; 0 <= ref1 ? k < ref1 : k > ref1; y = 0 <= ref1 ? ++k : --k) {
           this.cells[x][y] = cells[Utl.rand(0, cells.length - 1)];
         }
       }
@@ -68,18 +161,19 @@ PuzzleQuest = (function() {
     return this.redraw();
   };
 
-  PuzzleQuest.getChain = function(cells) {
-    var chains, j, l, me, o, p, ref, ref1, ref2, ref3, ref4, ref5, tempChain, x, xPlus, y, yPlus;
-    if (cells == null) {
-      cells = this.cells;
+  PuzzleQuest.getChain = function(inputCells) {
+    var cells, chains, j, k, l, me, o, ref, ref1, ref2, ref3, ref4, ref5, tempChain, x, xPlus, y, yPlus;
+    if (inputCells == null) {
+      inputCells = this.cells;
     }
+    cells = Utl.clone(inputCells);
     chains = [];
     for (x = j = 0, ref = cells.length; 0 <= ref ? j < ref : j > ref; x = 0 <= ref ? ++j : --j) {
-      for (y = l = 0, ref1 = cells[x].length; 0 <= ref1 ? l < ref1 : l > ref1; y = 0 <= ref1 ? ++l : --l) {
+      for (y = k = 0, ref1 = cells[x].length; 0 <= ref1 ? k < ref1 : k > ref1; y = 0 <= ref1 ? ++k : --k) {
         me = cells[x][y];
         if (!(0 < x && this.isChainable(me, cells[x - 1][y]))) {
           tempChain = [[x, y]];
-          for (xPlus = o = ref2 = x + 1, ref3 = cells.length; ref2 <= ref3 ? o < ref3 : o > ref3; xPlus = ref2 <= ref3 ? ++o : --o) {
+          for (xPlus = l = ref2 = x + 1, ref3 = cells.length; ref2 <= ref3 ? l < ref3 : l > ref3; xPlus = ref2 <= ref3 ? ++l : --l) {
             if (!this.isChainable(me, cells[xPlus][y])) {
               break;
             }
@@ -91,7 +185,7 @@ PuzzleQuest = (function() {
         }
         if (!(0 < y && this.isChainable(me, cells[x][y - 1]))) {
           tempChain = [[x, y]];
-          for (yPlus = p = ref4 = y + 1, ref5 = cells[x].length; ref4 <= ref5 ? p < ref5 : p > ref5; yPlus = ref4 <= ref5 ? ++p : --p) {
+          for (yPlus = o = ref4 = y + 1, ref5 = cells[x].length; ref4 <= ref5 ? o < ref5 : o > ref5; yPlus = ref4 <= ref5 ? ++o : --o) {
             if (!this.isChainable(me, cells[x][yPlus])) {
               break;
             }
@@ -104,6 +198,27 @@ PuzzleQuest = (function() {
       }
     }
     return chains;
+  };
+
+  PuzzleQuest.fall = function(inputCells) {
+    var cells, i, j, k, l, ref, ref1, ref2, temp, x, y;
+    if (inputCells == null) {
+      inputCells = this.cells;
+    }
+    cells = Utl.clone(inputCells);
+    for (x = j = 0, ref = cells.length; 0 <= ref ? j < ref : j > ref; x = 0 <= ref ? ++j : --j) {
+      temp = [];
+      for (y = k = 0, ref1 = cells[x].length; 0 <= ref1 ? k < ref1 : k > ref1; y = 0 <= ref1 ? ++k : --k) {
+        if (cells[x][y] !== this.CONST_CELL_EMPTY) {
+          temp.push(cells[x][y]);
+        }
+      }
+      for (i = l = 0, ref2 = cells[x].length - temp.length; 0 <= ref2 ? l < ref2 : l > ref2; i = 0 <= ref2 ? ++l : --l) {
+        temp.unshift(this.CONST_CELL_EMPTY);
+      }
+      cells[x] = temp;
+    }
+    return cells;
   };
 
   PuzzleQuest.isChainable = function(me, target) {
@@ -136,9 +251,9 @@ PuzzleQuest = (function() {
     results = [];
     for (x = j = 0, ref = this.CONST_X; 0 <= ref ? j < ref : j > ref; x = 0 <= ref ? ++j : --j) {
       results.push((function() {
-        var l, ref1, results1;
+        var k, ref1, results1;
         results1 = [];
-        for (y = l = 0, ref1 = this.CONST_Y; 0 <= ref1 ? l < ref1 : l > ref1; y = 0 <= ref1 ? ++l : --l) {
+        for (y = k = 0, ref1 = this.CONST_Y; 0 <= ref1 ? k < ref1 : k > ref1; y = 0 <= ref1 ? ++k : --k) {
           img = (function() {
             switch (this.cells[x][y]) {
               case this.CONST_CELL_RED:
@@ -364,14 +479,13 @@ Utl = (function() {
     return false;
   };
 
-  Utl.clone = function(ary) {
-    var j, k, len, res, v;
-    res = [];
-    for (k = j = 0, len = ary.length; j < len; k = ++j) {
-      v = ary[k];
-      res[k] = v;
+  Utl.clone = function(obj) {
+    if ($.isArray(obj)) {
+      return $.extend(true, [], obj);
+    } else if (obj instanceof Object) {
+      return $.extend(true, {}, obj);
     }
-    return res;
+    return obj;
   };
 
   Utl.arrayFill = function(length, val) {
@@ -387,7 +501,7 @@ Utl = (function() {
   };
 
   Utl.array2dFill = function(x, y, val) {
-    var j, l, ref, ref1, res, xx, yAry, yy;
+    var j, k, ref, ref1, res, xx, yAry, yy;
     if (y == null) {
       y = null;
     }
@@ -402,7 +516,7 @@ Utl = (function() {
     for (yy = j = 0, ref = y; 0 <= ref ? j < ref : j > ref; yy = 0 <= ref ? ++j : --j) {
       yAry[yy] = val;
     }
-    for (xx = l = 0, ref1 = x; 0 <= ref1 ? l < ref1 : l > ref1; xx = 0 <= ref1 ? ++l : --l) {
+    for (xx = k = 0, ref1 = x; 0 <= ref1 ? k < ref1 : k > ref1; xx = 0 <= ref1 ? ++k : --k) {
       res[xx] = this.clone(yAry);
     }
     return res;
@@ -412,7 +526,7 @@ Utl = (function() {
     return Object.keys(object).length;
   };
 
-  Utl.uuid = function() {
+  Utl.uuid4 = function() {
     var i, j, random, uuid;
     uuid = '';
     for (i = j = 0; j < 32; i = ++j) {

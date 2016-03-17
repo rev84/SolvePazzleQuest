@@ -230,17 +230,18 @@ class Utl
 
   ############################################
   # 
-  # 配列のコピーを返す
+  # コピーを返す
   # 
-  # @param Array ary
-  # @return Array
+  # @param Object obj
+  # @return Object
   # 
   ############################################
-  @clone:(ary)->
-    res = []
-    for v, k in ary
-      res[k] = v
-    res
+  @clone:(obj)->
+    if $.isArray obj
+      return $.extend true, [], obj
+    else if obj instanceof Object
+      return $.extend true, {}, obj
+    obj
 
 
   ############################################
@@ -299,7 +300,7 @@ class Utl
   # @return String
   # 
   ############################################
-  @uuid:()->
+  @uuid4:()->
     uuid = ''
     for i in [0...32]
       random = Math.random() * 16 | 0;
